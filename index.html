@@ -4,35 +4,56 @@
   <meta charset="UTF-8">
   <title>Pokédex</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    
+  </style>
 </head>
 <body>
-  <h1>Pokédex</h1>
+  <h1>Pokédex</h1><img src="Pokedex.jpg" alt="Pokedex.jpg" />
+
+
+  <!-- Imagem de Pokédex -->
+  <img src="https://cdn2.bulbagarden.net/upload/thumb/f/f7/Pok%C3%A9dex_FRLG.png/250px-Pok%C3%A9dex_FRLG.png" alt="Pokédex" class="pokedex-img">
+
+  <!-- Campo de busca -->
+  <input type="text" id="searchInput" placeholder="Buscar Pokémon...">
+  <button onclick="searchPokemon()">Buscar</button>
+
+  <!-- Filtro por tipo -->
+  <select id="typeFilter" onchange="filterByType()">
+    <option value="">Todos</option>
+    <option value="normal">Normal</option>
+    <option value="fire">Fogo</option>
+    <option value="water">Água</option>
+    <option value="grass">Planta</option>
+    <option value="electric">Elétrico</option>
+    <option value="ice">Gelo</option>
+    <option value="fighting">Lutador</option>
+    <option value="poison">Veneno</option>
+    <option value="ground">Terra</option>
+    <option value="flying">Voador</option>
+    <option value="psychic">Psíquico</option>
+    <option value="bug">Inseto</option>
+    <option value="rock">Pedra</option>
+    <option value="ghost">Fantasma</option>
+    <option value="dragon">Dragão</option>
+    <option value="dark">Sombrio</option>
+    <option value="steel">Aço</option>
+    <option value="fairy">Fada</option>
+  </select>
+
+
   <div id="pokedex"></div>
 
-  <script src="script.js"></script>
-</body>
-<head>
-  
-    <input type="text" id="searchInput" placeholder="Buscar Pokémon...">
-    <button onclick="searchPokemon()">Buscar</button>
-    
-      
-    
-</head>
-<div id="pokemonModal" class="modal">
+
+  <div id="pokemonModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
       <h2 id="modalTitle"></h2>
       <p id="modalDetails"></p>
     </div>
   </div>
-  <select id="typeFilter" onchange="filterByType()">
-    <option value="">Todos</option>
-    <option value="fire">Fogo</option>
-    <option value="water">Água</option>
-    <option value="grass">Planta</option>
-    <!-- Adicione outros tipos conforme necessário -->
-  </select>
-    
+
+  <script src="script.js"></script>
 </body>
 </html>
