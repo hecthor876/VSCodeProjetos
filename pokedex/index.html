@@ -1,139 +1,273 @@
-<script>
-  const pokedexContainer = document.getElementById('pokedex');
-  const searchInput = document.getElementById('searchInput');
-  const typeFilter = document.getElementById('typeFilter');
-  let allPokemon = [];
-  let displayedCount = 0;
-  const batchSize = 100;
-  let filteredPokemon = null; // Para guardar filtro atual (busca ou tipo)
-
-  async function fetchPokemonBatch(start, end) {
-    // Busca detalhes dos pokémon do intervalo [start, end]
-    const promises = [];
-    for(let i = start; i <= end; i++) {
-      promises.push(fetch(`https://pokeapi.co/api/v2/pokemon/${i}`).then(res => res.json()));
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pokédex Gerações 1-3</title>
+  <style>
+    body {
+      background-image: url('https://wallpapers.com/images/hd/ash-ketchum-pokemon-4k-cartoon-5e9lj57orpsuf28e.jpg');
+      background-size: cover;
+      background-position: center;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 0;
     }
-    return Promise.all(promises);
-  }
+    h1 {
+      margin-top: 20px;
+    }
+    #searchInput, #typeFilter {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #ffcb05;
+      color: #2a75bb;
+      cursor: pointer;
+      margin: 10px;
+    }
+    #pokedex {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 20px;
+    }
+    .pokemon-card {
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      margin: 10px;
+      padding: 10px;
+      width: 150px;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+    .pokemon-card:hover {
+      transform: scale(1.05);
+    }
+    .pokemon-img {
+      width: 100px;
+      height: 100px;
+    }
+    .rotate {
+      animation: rotate 1s linear;
+    }
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.9);
+    }
+    .modal-content {
+      background-color: #111;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 300px;
+      color: white;
+      border-radius: 10px;
+      text-align: left;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover,
+    .close:focus {
+      color: white;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pokédex Gerações 1-3</h1>
 
-  async function fetchPokemon() {
-    try {
-      // Gerações 1 a 3: pokémon #1 ao #386
-      allPokemon = [];
-      for(let i = 1; i <= 386; i += 50) {
-        // Buscar em lotes de 50 para não travar a página
-        const batchEnd = Math.min(i + 49, 386);
-        const batchData = await fetchPokemonBatch(i, batchEnd);
-        allPokemon.push(...batchData);
-        if(displayedCount === 0) {
-          displayedCount = batchSize;
-          displayPokemon(allPokemon.slice(0, displayedCount));
-          showLoadMoreButton();
-        }
+  <input type="text" id="searchInput" placeholder="Buscar Pokémon por nome ou número..." />
+  <button onclick="searchPokemon()">Buscar</button>
+
+  <select id="typeFilter" onchange="filterByType()">
+    <option value="">Todos</option>
+    <option value="normal">Normal</option>
+    <option value="fire">Fogo</option>
+    <option value="water">Água</option>
+    <option value="grass">Planta</option>
+    <option value="electric">Elétrico</option>
+    <option value="ice">Gelo</option>
+    <option value="fighting">Lutador</option>
+    <option value="poison">Veneno</option>
+    <option value="ground">Terra</option>
+    <option value="flying">Voador</option>
+    <option value="psychic">Psíquico</option>
+    <option value="bug">Inseto</option>
+    <option value="rock">Pedra</option>
+    <option value="ghost">Fantasma</option>
+    <option value="dragon">Dragão</option>
+    <option value="dark">Sombrio</option>
+    <option value="steel">Aço</option>
+    <option value="fairy">Fada</option>
+  </select>
+
+  <div id="pokedex"></div>
+
+  <div id="pokemonModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2 id="modalTitle"></h2>
+      <p id="modalDetails"></p>
+    </div>
+  </div>
+
+  <script>
+    const pokedexContainer = document.getElementById('pokedex');
+    const searchInput = document.getElementById('searchInput');
+    const typeFilter = document.getElementById('typeFilter');
+    let allPokemon = [];
+    let displayedCount = 0;
+    const batchSize = 100;
+    let filteredPokemon = null; // Para guardar filtro atual (busca ou tipo)
+
+    async function fetchPokemonBatch(start, end) {
+      const promises = [];
+      for(let i = start; i <= end; i++) {
+        promises.push(fetch(`https://pokeapi.co/api/v2/pokemon/${i}`).then(res => res.json()));
       }
-    } catch (error) {
-      console.error("Erro ao buscar Pokémon:", error);
+      return Promise.all(promises);
     }
-  }
 
-  function displayPokemon(pokemonList) {
-    pokedexContainer.innerHTML = '';
-    pokemonList.forEach(pokemon => appendPokemonCard(pokemon));
-  }
-
-  function appendPokemonCard(pokemon) {
-    const card = document.createElement('div');
-    card.classList.add('pokemon-card');
-    card.innerHTML = `
-      <h3>#${pokemon.id} ${capitalize(pokemon.name)}</h3>
-      <img src="${pokemon.sprites.front_default}" class="pokemon-img" onclick="rotatePokemon(event)">
-      <p>Tipo: ${pokemon.types.map(t => capitalize(t.type.name)).join(', ')}</p>
-    `;
-    card.addEventListener('click', () => showDetails(pokemon));
-    pokedexContainer.appendChild(card);
-  }
-
-  function rotatePokemon(event) {
-    event.stopPropagation();
-    const imgElement = event.target;
-    imgElement.classList.add('rotate');
-    setTimeout(() => imgElement.classList.remove('rotate'), 1000);
-  }
-
-  function searchPokemon() {
-    const query = searchInput.value.trim().toLowerCase();
-    filteredPokemon = allPokemon.filter(p =>
-      p.name.includes(query) || p.id.toString() === query
-    );
-    displayedCount = filteredPokemon.length;
-    document.getElementById('loadMoreButton')?.remove();
-    displayPokemon(filteredPokemon);
-  }
-
-  function filterByType() {
-    const type = typeFilter.value;
-    if (!type) {
-      filteredPokemon = null;
-      displayedCount = batchSize;
-      displayPokemon(allPokemon.slice(0, displayedCount));
-      showLoadMoreButton();
-      return;
+    async function fetchPokemon() {
+      try {
+        allPokemon = [];
+        for(let i = 1; i <= 386; i += 50) {
+          const batchEnd = Math.min(i + 49, 386);
+          const batchData = await fetchPokemonBatch(i, batchEnd);
+          allPokemon.push(...batchData);
+          if(displayedCount === 0) {
+            displayedCount = batchSize;
+            displayPokemon(allPokemon.slice(0, displayedCount));
+            showLoadMoreButton();
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao buscar Pokémon:", error);
+      }
     }
-    filteredPokemon = allPokemon.filter(p =>
-      p.types.some(t => t.type.name === type)
-    );
-    displayedCount = filteredPokemon.length;
-    document.getElementById('loadMoreButton')?.remove();
-    displayPokemon(filteredPokemon);
-  }
 
-  function showDetails(pokemon) {
-    document.getElementById('modalTitle').innerText = `${pokemon.name.toUpperCase()} (#${pokemon.id})`;
-    document.getElementById('modalDetails').innerHTML = `
-      <strong>Peso:</strong> ${pokemon.weight / 10}kg<br>
-      <strong>Altura:</strong> ${pokemon.height / 10}m<br>
-      <strong>Tipo:</strong> ${pokemon.types.map(t => capitalize(t.type.name)).join(', ')}<br>
-      <strong>Habilidades:</strong> ${pokemon.abilities.map(a => capitalize(a.ability.name)).join(', ')}
-    `;
-    document.getElementById('pokemonModal').style.display = 'block';
-  }
-
-  function closeModal() {
-    document.getElementById('pokemonModal').style.display = 'none';
-  }
-
-  function capitalize(text) {
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  }
-
-  function showLoadMoreButton() {
-    let button = document.getElementById('loadMoreButton');
-    if (!button) {
-      button = document.createElement('button');
-      button.id = 'loadMoreButton';
-      button.innerText = 'Carregar mais';
-      button.style.margin = '20px';
-      button.onclick = loadMorePokemon;
-      document.body.appendChild(button);
+    function displayPokemon(pokemonList) {
+      pokedexContainer.innerHTML = '';
+      pokemonList.forEach(pokemon => appendPokemonCard(pokemon));
     }
-  }
 
-  function loadMorePokemon() {
-    let listToShow = filteredPokemon || allPokemon;
-    const nextBatch = listToShow.slice(displayedCount, displayedCount + batchSize);
-    nextBatch.forEach(pokemon => appendPokemonCard(pokemon));
-    displayedCount += batchSize;
-    if (displayedCount >= listToShow.length) {
+    function appendPokemonCard(pokemon) {
+      const card = document.createElement('div');
+      card.classList.add('pokemon-card');
+      card.innerHTML = `
+        <h3>#${pokemon.id} ${capitalize(pokemon.name)}</h3>
+        <img src="${pokemon.sprites.front_default}" class="pokemon-img" onclick="rotatePokemon(event)" />
+        <p>Tipo: ${pokemon.types.map(t => capitalize(t.type.name)).join(', ')}</p>
+      `;
+      card.addEventListener('click', () => showDetails(pokemon));
+      pokedexContainer.appendChild(card);
+    }
+
+    function rotatePokemon(event) {
+      event.stopPropagation();
+      const imgElement = event.target;
+      imgElement.classList.add('rotate');
+      setTimeout(() => imgElement.classList.remove('rotate'), 1000);
+    }
+
+    function searchPokemon() {
+      const query = searchInput.value.trim().toLowerCase();
+      filteredPokemon = allPokemon.filter(p =>
+        p.name.includes(query) || p.id.toString() === query
+      );
+      displayedCount = filteredPokemon.length;
       document.getElementById('loadMoreButton')?.remove();
+      displayPokemon(filteredPokemon);
     }
-  }
 
-  window.onclick = function(event) {
-    const modal = document.getElementById('pokemonModal');
-    if (event.target === modal) {
-      closeModal();
+    function filterByType() {
+      const type = typeFilter.value;
+      if (!type) {
+        filteredPokemon = null;
+        displayedCount = batchSize;
+        displayPokemon(allPokemon.slice(0, displayedCount));
+        showLoadMoreButton();
+        return;
+      }
+      filteredPokemon = allPokemon.filter(p =>
+        p.types.some(t => t.type.name === type)
+      );
+      displayedCount = filteredPokemon.length;
+      document.getElementById('loadMoreButton')?.remove();
+      displayPokemon(filteredPokemon);
     }
-  }
 
-  fetchPokemon();
-</script>
+    function showDetails(pokemon) {
+      document.getElementById('modalTitle').innerText = `${pokemon.name.toUpperCase()} (#${pokemon.id})`;
+      document.getElementById('modalDetails').innerHTML = `
+        <strong>Peso:</strong> ${pokemon.weight / 10}kg<br>
+        <strong>Altura:</strong> ${pokemon.height / 10}m<br>
+        <strong>Tipo:</strong> ${pokemon.types.map(t => capitalize(t.type.name)).join(', ')}<br>
+        <strong>Habilidades:</strong> ${pokemon.abilities.map(a => capitalize(a.ability.name)).join(', ')}
+      `;
+      document.getElementById('pokemonModal').style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('pokemonModal').style.display = 'none';
+    }
+
+    function capitalize(text) {
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    function showLoadMoreButton() {
+      let button = document.getElementById('loadMoreButton');
+      if (!button) {
+        button = document.createElement('button');
+        button.id = 'loadMoreButton';
+        button.innerText = 'Carregar mais';
+        button.onclick = loadMorePokemon;
+        document.body.appendChild(button);
+      }
+    }
+
+    function loadMorePokemon() {
+      let listToShow = filteredPokemon || allPokemon;
+      const nextBatch = listToShow.slice(displayedCount, displayedCount + batchSize);
+      nextBatch.forEach(pokemon => appendPokemonCard(pokemon));
+      displayedCount += batchSize;
+      if (displayedCount >= listToShow.length) {
+        document.getElementById('loadMoreButton')?.remove();
+      }
+    }
+
+    window.onclick = function(event) {
+      const modal = document.getElementById('pokemonModal');
+      if (event.target === modal) {
+        closeModal();
+      }
+    }
+
+    fetchPokemon();
+  </script>
+</body>
+</html>
